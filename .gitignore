@@ -1,43 +1,15 @@
-# Dependencies
 node_modules/
-npm-debug.log*
-yarn-error.log*
-
-# Environment
+dist/
+build/
 .env
 .env.local
 .env.*.local
-
-# Data and logs
-data/logs/
-data/memory/
-data/cache/
-*.log
-
-# IDE
-.vscode/
-.idea/
+data/logs/*.log
+.DS_Store
 *.swp
 *.swo
 *~
-.DS_Store
-
-# Build
-dist/
-build/
-.next/
-out/
-
-# Testing
-coverage/
-.nyc_output/
-
-# OS
-Thumbs.db
-.DS_Store
-*.pid
-
-# Temporary
-tmp/
-temp/
-*.tmp
+.vscode/settings.json
+.idea/
+.eslintcache
+.npmrc
