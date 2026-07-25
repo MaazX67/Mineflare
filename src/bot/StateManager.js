@@ -1,105 +1,63 @@
 /**
- * Bot state management
+ * Bot Recovery Manager
  */
 
 import { Logger } from '../core/Logger.js';
 
-const logger = new Logger('StateManager');
+const logger = new Logger('RecoveryManager');
 
 /**
- * Manages bot state and properties
+ * Handles bot reconnection and error recovery
  */
-export class StateManager {
-  constructor() {
-    this.state = {
-      connected: false,
-      spawned: false,
-      alive: true,
-      dimension: 'overworld',
-      gamemode: 'survival',
-      position: { x: 0, y: 0, z: 0 },
-      health: 20,
-      hunger: 20,
-      inventory: {},
-      currentTask: null,
-      taskQueue: [],
-    };
+export class RecoveryManager {
+  /**
+   * Create recovery manager
+   * @param {Object} config
+   * @param {EventBus} eventBus
+   */
+  constructor(config, eventBus) {
+    this.config = config;
+    this.events = eventBus;
+    this.logger = logger.createChild('Manager');
+    this.reconnectAttempts = 0;
+    this.isRecovering = false;
   }
 
   /**
-   * Update state
-   * @param {string} key
-   * @param {any} value
+   * Handle connection error
+   * @param {Error} error
+   * @param {BotInstance} bot
    */
-  set(key, value) {
-    this.state[key] = value;
-    logger.debug(`State updated: ${key} = ${JSON.stringify(value)}`);
+  async handleError(error, bot) {
+    this.logger.error('Connection error:', error);
+    
+    if (!this.config.behavior.autoReconnect) {
+      return;
+    }
+    
+    if (this.reconnectAttempts >= this.config.behavior.maxReconnectAttempts) {
+      this.logger.error('Max reconnect attempts reached');
+      this.events.emit('bot:error', { error: error.message });
+      return;
+    }
+    
+    this.isRecovering = true;
+    this.reconnectAttempts++;
+    
+    const delay = this.config.behavior.reconnectDelay * this.reconnectAttempts;
+    this.logger.info(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})...`);
+    
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    
+    this.isRecovering = false;
+    this.events.emit('recovery:reconnect');
   }
 
   /**
-   * Get state value
-   * @param {string} key
-   * @returns {any}
+   * Reset recovery state
    */
-  get(key) {
-    return this.state[key];
-  }
-
-  /**
-   * Get entire state
-   * @returns {Object}
-   */
-  getAll() {
-    return JSON.parse(JSON.stringify(this.state));
-  }
-
-  /**
-   * Set connected state
-   * @param {boolean} connected
-   */
-  setConnected(connected) {
-    this.set('connected', connected);
-  }
-
-  /**
-   * Set spawned state
-   * @param {boolean} spawned
-   */
-  setSpawned(spawned) {
-    this.set('spawned', spawned);
-  }
-
-  /**
-   * Set alive state
-   * @param {boolean} alive
-   */
-  setAlive(alive) {
-    this.set('alive', alive);
-  }
-
-  /**
-   * Update position
-   * @param {number} x
-   * @param {number} y
-   * @param {number} z
-   */
-  updatePosition(x, y, z) {
-    this.set('position', { x, y, z });
-  }
-
-  /**
-   * Update health
-   * @param {number} health
-   */
-  updateHealth(health) {
-    this.set('health', Math.max(0, Math.min(20, health)));
-  }
-
-  /**
-   * Update hunger
-   * @param {number} hunger
-   */
-  updateHunger(hunger) {
-    this.set('hunger', Math.max(0, Math.min(20, hunger)));
+  reset() {
+    this.reconnectAttempts = 0;
+    this.isRecovering = false;
   }
 }

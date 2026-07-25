@@ -1,8 +1,8 @@
 /**
- * Core module exports
+ * Core systems module exports
  */
 
-export { BotManager } from './BotManager.js';
 export { EventBus } from './EventBus.js';
 export { Logger } from './Logger.js';
-export { ConfigLoader } from './ConfigLoader.js';
+export { loadConfig } from './ConfigLoader.js';
+export { BotManager } from './BotManager.js';

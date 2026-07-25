@@ -3,113 +3,87 @@
  */
 
 import pino from 'pino';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import { mkdir } from 'fs/promises';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const projectRoot = join(__dirname, '..', '..');
-const logsDir = join(projectRoot, 'data', 'logs');
+import pretty from 'pino-pretty';
 
 /**
- * Logger class providing structured logging with Pino
+ * Main logger instance (singleton)
+ */
+let mainLogger = null;
+
+/**
+ * Get or create main logger
+ * @private
+ */
+function getMainLogger() {
+  if (!mainLogger) {
+    const transport = pretty({
+      colorize: true,
+      translateTime: 'SYS:standard',
+      ignore: 'pid,hostname',
+      singleLine: false,
+    });
+    
+    mainLogger = pino({ level: process.env.LOG_LEVEL || 'info' }, transport);
+  }
+  return mainLogger;
+}
+
+/**
+ * Structured logger using Pino
  */
 export class Logger {
   /**
-   * Create a new logger instance
-   * @param {string} name - Logger context name
+   * Create logger
+   * @param {string} name - Logger name
    */
   constructor(name) {
     this.name = name;
-    this.logger = this._createLogger();
+    this._logger = getMainLogger().child({ component: name });
   }
 
   /**
-   * Create the Pino logger instance
-   * @private
-   * @returns {pino.Logger}
+   * Create child logger
+   * @param {string} name
+   * @returns {Logger}
    */
-  _createLogger() {
-    const isDev = process.env.NODE_ENV !== 'production';
-    const logLevel = process.env.LOG_LEVEL || 'info';
-
-    const options = {
-      level: logLevel,
-      base: { name: this.name },
-    };
-
-    // Development: pretty print to console
-    if (isDev && process.env.LOG_PRETTY !== 'false') {
-      return pino(
-        {
-          ...options,
-          transport: {
-            target: 'pino-pretty',
-            options: {
-              colorize: true,
-              translateTime: 'SYS:standard',
-              ignore: 'pid,hostname',
-            },
-          },
-        },
-      );
-    }
-
-    // Production: structured JSON logging
-    return pino(options);
+  createChild(name) {
+    const child = new Logger(`${this.name}:${name}`);
+    return child;
   }
 
   /**
-   * Log at debug level
+   * Log info level
    * @param {string} message
    * @param {any} data
    */
-  debug(message, data) {
-    this.logger.debug(data || {}, message);
+  info(message, data = {}) {
+    this._logger.info(data, message);
   }
 
   /**
-   * Log at info level
+   * Log debug level
    * @param {string} message
    * @param {any} data
    */
-  info(message, data) {
-    this.logger.info(data || {}, message);
+  debug(message, data = {}) {
+    this._logger.debug(data, message);
   }
 
   /**
-   * Log at warn level
+   * Log warn level
    * @param {string} message
    * @param {any} data
    */
-  warn(message, data) {
-    this.logger.warn(data || {}, message);
+  warn(message, data = {}) {
+    this._logger.warn(data, message);
   }
 
   /**
-   * Log at error level
+   * Log error level
    * @param {string} message
    * @param {Error|any} error
    */
-  error(message, error) {
-    if (error instanceof Error) {
-      this.logger.error({
-        stack: error.stack,
-        name: error.name,
-        message: error.message,
-      }, message);
-    } else {
-      this.logger.error(error || {}, message);
-    }
-  }
-
-  /**
-   * Create a child logger
-   * @param {string} childName
-   * @returns {Logger}
-   */
-  createChild(childName) {
-    const child = new Logger(`${this.name}:${childName}`);
-    return child;
+  error(message, error = {}) {
+    this._logger.error(error, message);
   }
 }
