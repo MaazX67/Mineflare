@@ -1,34 +1,34 @@
 /**
- * Mineflare - Professional Minecraft Automation Framework
- * Entry point for the application
+ * Main entry point for Mineflare bot
  */
 
 import { BotManager } from './core/BotManager.js';
 import { Logger } from './core/Logger.js';
 
-const logger = new Logger('Mineflare');
+const logger = new Logger('Main');
 
 /**
- * Initialize and start the Mineflare framework
+ * Main application entry point
  */
 async function main() {
   try {
-    logger.info('Starting Mineflare v1.0.0...');
+    logger.info('🎮 Starting Mineflare...');
     
+    // Create and initialize bot manager
     const manager = new BotManager();
-    
-    // Initialize configuration and systems
     await manager.initialize();
-    logger.info('Systems initialized successfully');
     
     // Connect to server
     await manager.connect();
-    logger.info('Connected to Minecraft server');
     
-    // Keep process alive
+    logger.info('✅ Mineflare is running!');
+    logger.info(`📊 Dashboard: http://localhost:${manager.config.dashboard.port}`);
+    logger.info(`🔌 API: http://localhost:${manager.config.api.port}`);
+    
+    // Handle graceful shutdown
     process.on('SIGINT', async () => {
-      logger.info('Shutdown signal received');
-      await manager.shutdown();
+      logger.info('🛑 Shutting down gracefully...');
+      await manager.disconnect();
       process.exit(0);
     });
     
@@ -38,4 +38,5 @@ async function main() {
   }
 }
 
+// Start the bot
 main();
